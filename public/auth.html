@@ -16,7 +16,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('hero.png') no-repeat center center/cover;
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('logo.png') no-repeat center center/cover;
             padding: 2rem;
         }
 
@@ -111,18 +111,17 @@
 <body style="overflow: hidden;"> <!-- Lock scroll during splash -->
     <div id="splash-screen">
         <div class="splash-content">
-            <img src="cityridetaxi.png" alt="CityRide Premium Logo" class="splash-logo">
+            <img src="logo.png" alt="CityRide Premium Logo" class="splash-logo">
             <div class="loading-bar">
                 <div class="loading-progress"></div>
             </div>
-            <p class="splash-text">Verifying Security Protocols...</p>
+            <p class="splash-text">CityRide • Premium Intelligence Units</p>
         </div>
     </div>
     <div class="auth-container">
         <div class="auth-card">
-            <div class="logo" style="margin-bottom: 3rem; text-align: center;">
-                <img src="cityridetaxi.png" alt="CityRide Logo" style="height: 60px; width: auto; display: block; margin: 0 auto 1rem;">
-                <span class="logo-accent">CityRide</span>Taxi
+            <div class="logo" style="margin-bottom: 3rem; text-align: center; cursor: pointer;" onclick="window.location.href='index.html'">
+                <img src="logo.png" alt="CityRideTaxi" style="height: 60px; width: auto; display: block; margin: 0 auto 1rem;">
             </div>
 
             <div class="auth-tabs">

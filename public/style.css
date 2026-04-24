@@ -493,12 +493,12 @@ h4 {
 }
 
 #sedan-img {
-    background-image: url('cityride_sedan.png');
+    background-image: url('logo.png');
     background-color: var(--light-grey);
 }
 
 #suv-img {
-    background-image: url('cityride_suv.png');
+    background-image: url('logo.png');
     background-color: var(--light-grey);
 }
 
@@ -1350,11 +1350,18 @@ h4 {
 }
 
 .pulse-spinner {
-    width: 60px;
-    height: 60px;
-    background-color: var(--primary-red);
-    border-radius: 100%;
-    animation: sk-scaleout 1.2s infinite ease-in-out;
+    width: 100px;
+    height: 100px;
+    background: url('logo.png') no-repeat center center;
+    background-size: contain;
+    animation: premium-pulse 2s infinite ease-in-out;
+    filter: drop-shadow(0 0 15px rgba(183, 28, 28, 0.4));
+}
+
+@keyframes premium-pulse {
+    0% { transform: scale(0.9); opacity: 0.6; filter: drop-shadow(0 0 5px rgba(183, 28, 28, 0.2)); }
+    50% { transform: scale(1.1); opacity: 1; filter: drop-shadow(0 0 25px rgba(183, 28, 28, 0.6)); }
+    100% { transform: scale(0.9); opacity: 0.6; filter: drop-shadow(0 0 5px rgba(183, 28, 28, 0.2)); }
 }
 
 @keyframes sk-scaleout {
@@ -1420,9 +1427,10 @@ h4 {
 }
 
 .splash-logo {
-    width: 150px;
+    width: 220px; /* Larger, authoritative logo */
     height: auto;
-    animation: logo-pulse 2s infinite ease-in-out;
+    animation: logo-pulse 2.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 20px 40px rgba(0,0,0,0.4));
 }
 
 .loading-bar {

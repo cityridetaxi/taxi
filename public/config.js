@@ -5,7 +5,7 @@
  */
 
 // [IMPORTANT] Replace this with your actual live Railway project URL (e.g., https://myapp.up.railway.app)
-const PRODUCTION_URL = "https://cityridetaxis.up.railway.app"; 
+const PRODUCTION_URL = "https://cityride.up.railway.com"; 
 
 const API_BASE_URL = (
     window.location.protocol === 'file:' || 
