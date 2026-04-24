@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CityRideTaxi | Premium Cab Booking Service</title>
+    <meta name="description"
+        content="Book professional 5-seater and 7-seater cabs. Real-time fare calculation, professional drivers, and scheduled reservations.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="config.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+</head>
+
+<body style="overflow: hidden;"> <!-- Lock scroll during splash -->
+    <div id="splash-screen">
+        <div class="splash-content">
+            <img src="cityridetaxi.png" alt="CityRide Premium Logo" class="splash-logo">
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+            <p class="splash-text">Initializing Premium Experience...</p>
+        </div>
+    </div>
+    <!-- App Preloader -->
+    <div id="app-preloader">
+        <div class="loader-logo"><span class="logo-accent">CityRide</span>Taxi</div>
+        <div class="pulse-spinner"></div>
+        <div class="loading-text">Initializing Systems</div>
+    </div>
+
+    <main>
+        <section id="home" class="hero">
+            <div class="hero-bg"></div>
+            <div class="container hero-content">
+                <div class="hero-text">
+                    <div style="margin-bottom: 2rem;">
+                        <img src="cityridetaxi.png" alt="CityRide Logo" style="height: 100px; width: auto; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3));">
+                    </div>
+                    <h1>City Professional <br><span class="text-accent">Travel Solutions</span></h1>
+                    <p>Experience the gold standard in premium transportation. Book your high-end journey with
+                        professional captains.</p>
+                    <div style="margin-top: 3rem; display: flex; gap: 1.5rem; flex-wrap: wrap;" id="hero-actions">
+                        <button class="btn btn-primary guest-action" onclick="openMapPicker()">Book Now</button>
+                        <button class="btn guest-action" style="border: 1px solid rgba(255,255,255,0.3); color: white;"
+                            onclick="document.getElementById('fleet').scrollIntoView({behavior: 'smooth'})">View
+                            Fleet</button>
+
+                        <button id="hero-dashboard-btn" class="btn btn-primary auth-action"
+                            style="display:none;">My Dashboard</button>
+                        <button class="btn auth-action"
+                            style="display:none; border: 1px solid rgba(255,255,255,0.3); color: white; background-color: rgba(0,0,0,0.5);"
+                            onclick="logoutUser()">Logout</button>
+                    </div>
+                </div>
+
+                <div class="booking-widget">
+                    <div class="widget-tabs">
+                        <button class="tab-btn active" data-type="oneway">One Way</button>
+                        <button class="tab-btn" data-type="round">Round Trip</button>
+                        <button class="tab-btn" data-type="rental">Local Rental</button>
+                    </div>
+
+                    <form id="booking-form" class="widget-form">
+                        <div class="form-grid">
+                            <div class="input-group">
+                                <label for="pickup">Pickup Location <span class="map-picker-link" onclick="openMapPicker('pickup', event)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>Pick on Map</span></label>
+                                <input type="text" id="pickup" placeholder="Enter pickup address" required>
+                                <div id="pickup-suggestions" class="suggestions"></div>
+                            </div>
+                            <div class="input-group">
+                                <label for="drop">Drop Location <span class="map-picker-link" onclick="openMapPicker('drop', event)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>Pick on Map</span></label>
+                                <input type="text" id="drop" placeholder="Enter destination" required>
+                                <div id="drop-suggestions" class="suggestions"></div>
+                            </div>
+                            <div class="input-group">
+                                <label for="pickup-date">Departure Date</label>
+                                <input type="date" id="pickup-date" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="pickup-time">Departure Time</label>
+                                <input type="time" id="pickup-time" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="passengers">Number of Passengers</label>
+                                <select id="passengers" required>
+                                    <option value="1">1 Passenger</option>
+                                    <option value="2">2 Passengers</option>
+                                    <option value="3">3 Passengers</option>
+                                    <option value="4">4 Passengers</option>
+                                    <option value="5">5 Passengers</option>
+                                    <option value="6">6 Passengers</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="vehicle-type">Vehicle Preference</label>
+                                <select id="vehicle-type">
+                                    <option value="auto">Auto Select</option>
+                                    <option value="bike">Classy Bike Taxi (1 Seater)</option>
+                                    <option value="sedan">Premium Sedan (4+1 Seater)</option>
+                                    <option value="suv">Luxury SUV (Xylo / 6+1 Seater)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="fare-estimate" class="fare-estimate hidden">
+                            <div class="fare-details">
+                                <p style="font-weight:700;">Total KM: <span id="distance-val" style="color:var(--primary-red);">0</span> KM</p>
+                                <p style="font-weight:700;">Estimated Fare: <span id="fare-val" style="color:var(--primary-red);">₹0</span></p>
+                            </div>
+                            <div class="vehicle-auto-badge" id="vehicle-badge">
+                                Standard Sedan
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-large btn-submit" style="background-color: #B71C1C; color: white;">Book Now!</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Map Picker Modal -->
+    <div id="map-modal" class="map-modal">
+        <div class="map-modal-content">
+            <div class="map-header">
+                <h3>Select <span id="picking-type">pickup</span> on Map</h3>
+                <button class="close-map" onclick="closeMapPicker()">&times;</button>
+            </div>
+            <div id="map-picker"></div>
+            <div class="map-footer">
+                <div id="map-instructions">
+                    <p>Click on the map to set your location.</p>
+                </div>
+                <button id="confirm-location" class="btn btn-primary" style="display:none;" onclick="confirmMapPoint()">Confirm Point</button>
+            </div>
+        </div>
+    </div>
+
+    </a>
+    <script>
+        window.addEventListener('load', () => {
+            const splash = document.getElementById('splash-screen');
+            setTimeout(() => {
+                splash.classList.add('splash-hidden');
+                document.body.style.overflow = 'auto'; // Re-enable scroll
+            }, 3000); // 3 second experience
+        });
+    </script>
+    <script src="app.js"></script>
+    <script src="alert.js"></script>
+    <script>
+        // Preloader Fade Out
+        window.addEventListener('load', () => {
+            const preloader = document.getElementById('app-preloader');
+            setTimeout(() => {
+                preloader.classList.add('fade-out');
+            }, 800); // Small delay for premium feel
+        });
+    </script>
+</body>
+
+</html>
