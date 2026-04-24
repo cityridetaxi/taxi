@@ -56,7 +56,14 @@ async function testDailyReport() {
             
             // Header
             doc.rect(0, 0, 600, 80).fill('#1a1a1a');
-            doc.fillColor('#ff5252').fontSize(20).text('CITYRIDE TEST AUDIT', 40, 30);
+            
+            try {
+                const logoPath = path.join(__dirname, 'public', 'logo.png');
+                doc.image(logoPath, 30, 25, { width: 30 });
+                doc.fillColor('#ff5252').fontSize(20).text('CITYRIDE TEST AUDIT', 75, 30);
+            } catch (err) {
+                doc.fillColor('#ff5252').fontSize(20).text('CITYRIDE TEST AUDIT', 40, 30);
+            }
             
             // Metrics
             doc.fillColor('#333333').fontSize(10).text('SUMMARY METRICS', 40, 100);

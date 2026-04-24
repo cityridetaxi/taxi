@@ -257,8 +257,17 @@ async function sendDailyReport() {
 
             // --- HEADER SECTION ---
             doc.rect(0, 0, 600, 100).fill('#1a1a1a');
-            doc.fillColor('#ff5252').fontSize(28).text('CITYRIDE', 40, 35, { characterSpacing: 2 });
-            doc.fillColor('#ffffff').fontSize(10).text('LOGISTICS INTELLIGENCE UNIT', 40, 65);
+            
+            // Add Logo Image
+            try {
+                const logoPath = path.join(__dirname, 'public', 'logo.png');
+                doc.image(logoPath, 40, 30, { width: 40 });
+                doc.fillColor('#ff5252').fontSize(24).text('CITYRIDE', 90, 35, { characterSpacing: 2 });
+            } catch (err) {
+                doc.fillColor('#ff5252').fontSize(28).text('CITYRIDE', 40, 35, { characterSpacing: 2 });
+            }
+
+            doc.fillColor('#ffffff').fontSize(10).text('LOGISTICS INTELLIGENCE UNIT', 40, 75);
             doc.text(`REPORT ID: ${new Date().getTime()}`, 400, 45, { align: 'right' });
             doc.text(`AUDIT DATE: ${new Date().toDateString()}`, 400, 60, { align: 'right' });
 
