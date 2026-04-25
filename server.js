@@ -178,9 +178,20 @@ async function initDB() {
         } catch (e) { /* already exists */ }
 
         // Migration: Ensure distance exists
+        try { await db.query('ALTER TABLE bookings ADD COLUMN distance VARCHAR(50)'); } catch(e){}
+        
+        // Migration: Ensure journey_otp exists
+        try { await db.query('ALTER TABLE bookings ADD COLUMN journey_otp VARCHAR(10)'); } catch(e){}
+
+        // Recovery: Generate OTPs for legacy rides that don't have one
         try {
-            await db.query('ALTER TABLE bookings ADD COLUMN distance VARCHAR(50) AFTER fare');
-        } catch (e) { /* already exists */ }
+            const [missing] = await db.query('SELECT id FROM bookings WHERE journey_otp IS NULL OR journey_otp = ""');
+            for (const ride of missing) {
+                const newOtp = Math.floor(1000 + Math.random() * 9000).toString();
+                await db.query('UPDATE bookings SET journey_otp = ? WHERE id = ?', [newOtp, ride.id]);
+                console.log(`[RECOVERY] Generated legacy OTP [${newOtp}] for Ride #B${ride.id}`);
+            }
+        } catch (e) { console.error('Recovery script failed:', e.message); }
 
         // Abort Rejections Table
         await db.query(`
@@ -537,6 +548,7 @@ app.get('/api/driver/info/:id', async (req, res) => {
 app.post('/api/bookings/create', async (req, res) => {
     try {
         const booking = req.body;
+        const journeyOtp = Math.floor(1000 + Math.random() * 9000).toString(); // 4-digit OTP
         const values = [
             booking.userId || 1,
             String(booking.pickup || ''),
@@ -550,10 +562,11 @@ app.post('/api/bookings/create', async (req, res) => {
             String(booking.tripType || 'oneway'),
             String(booking.fare || '₹0'),
             String(booking.distance || '0 KM'),
+            journeyOtp,
             'pending'
         ];
-        const [result] = await db.query('INSERT INTO bookings (user_id, pickup_loc, pickup_coords, drop_loc, drop_coords, pickup_date, pickup_time, passengers, vehicle_type, trip_type, fare, distance, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', values);
-        res.json({ success: true, bookingId: result.insertId });
+        const [result] = await db.query('INSERT INTO bookings (user_id, pickup_loc, pickup_coords, drop_loc, drop_coords, pickup_date, pickup_time, passengers, vehicle_type, trip_type, fare, distance, journey_otp, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', values);
+        res.json({ success: true, bookingId: result.insertId, journeyOtp: journeyOtp });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -990,7 +1003,18 @@ app.post('/api/admin/transfer-ride', async (req, res) => {
 // 5. Update Booking Status
 app.post('/api/bookings/update-status', async (req, res) => {
     try {
-        await db.query('UPDATE bookings SET status = ? WHERE id = ?', [req.body.status, req.body.bookingId]);
+        const { status, bookingId, otp } = req.body;
+        
+        // If completing, verify OTP
+        if (status === 'completed') {
+            const [rows] = await db.query('SELECT journey_otp FROM bookings WHERE id = ?', [bookingId]);
+            if (rows.length === 0) return res.status(404).json({ error: 'Booking missing.' });
+            if (rows[0].journey_otp !== otp) {
+                return res.status(400).json({ error: 'SECURITY ALERT: Verification Token Mismatch. Please check the 4-digit code in passenger details.' });
+            }
+        }
+        
+        await db.query('UPDATE bookings SET status = ? WHERE id = ?', [status, bookingId]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });

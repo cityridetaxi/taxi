@@ -362,8 +362,7 @@
                         <span id="active-status" class="status-pill status-assigned">TRACKING</span>
                     </div>
 
-                    <div id="active-details"
-                        style="display: grid; grid-template-columns: 2fr 1fr; gap: 4rem; margin-top: 1rem;">
+                    <div id="active-details" style=" margin-top: 1rem;">
                         <!-- Assigned dynamically -->
                     </div>
                 </div>
@@ -519,6 +518,11 @@
                                 <div style="font-weight:600; color:var(--primary-red); margin-bottom:0.5rem;">Ride Details</div>
                                 <div style="font-size:0.95rem; font-weight:700;">Total Distance: <span style="color:var(--primary-red)">${activeMission.distance || '0 KM'}</span></div>
                                 <div style="font-size:0.95rem; font-weight:700;">Estimated Fare: <span style="color:var(--primary-red)">${activeMission.fare}</span></div>
+                            </div>
+                            <div style="margin-top:1.5rem; padding:1rem; background:rgba(183,28,28,0.05); border-radius:12px; border:1px dashed var(--primary-red); text-align:center;">
+                                <div style="font-size:0.65rem; text-transform:uppercase; color:var(--primary-red); font-weight:800; letter-spacing:1px; margin-bottom:5px;">Mission Verification OTP</div>
+                                <div style="font-size:1.8rem; font-weight:800; letter-spacing:8px; color:var(--dark-charcoal);">${activeMission.journey_otp || '----'}</div>
+                                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:5px;">Share this code with your captain ONLY at the end of the journey.</div>
                             </div>
                         </div>
                         <div style="background:var(--light-grey); padding:2rem; border-radius:20px; text-align:center; display:flex; flex-direction:column; justify-content:center;">

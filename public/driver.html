@@ -622,22 +622,26 @@
         }
 
         async function completeRide(rideId, driverId, btn) {
-            if (!confirm('Confirm journey completion? This will finalize billing and update your wallet.')) return;
+            const otp = prompt('MISSION VERIFICATION REQUIRED\n Please enter the 4-digit Identity Token provided by the passenger to conclude this mission:');
+            if (!otp) return;
 
             try {
                 const res = await fetch(`${API_BASE_URL}/api/bookings/update-status`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ bookingId: rideId, status: 'completed' })
+                    body: JSON.stringify({ bookingId: rideId, status: 'completed', otp })
                 });
 
                 if (res.ok) {
-                    alert('🎉 CONGRATULATIONS! Journey completed successfully. Your earnings have been credited to your wallet.');
+                    alert('🎉 CONGRATULATIONS! Journey verified and completed successfully. Your earnings have been credited.');
                     setTimeout(() => {
                         window.location.reload();
                     }, 2000);
+                } else {
+                    const error = await res.json();
+                    alert('🚨 VERIFICATION FAILURE: ' + (error.error || 'Identity Token Mismatch. Action Logged.'));
                 }
-            } catch (err) { alert('Network error during completion.'); }
+            } catch (err) { alert('Network error during mission conclusion.'); }
         }
 
         function logoutUser() {

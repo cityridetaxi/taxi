@@ -433,7 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 const result = await response.json();
-                alert(`🏨 BOOKING CONFIRMED!\nBooking ID: #B${result.bookingId}\n\nYour premium captain will be assigned shortly.`);
+                alert(`🏨 BOOKING CONFIRMED!\nBooking ID: #B${result.bookingId}\nVerification OTP: ${result.journeyOtp}\n\nYour premium captain will be assigned shortly. Please keep this OTP safe.`);
                 bookingForm.reset();
                 if (fareEstimate) fareEstimate.classList.add('hidden');
                 closeBookingModal();
