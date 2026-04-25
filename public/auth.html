@@ -9,7 +9,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <script src="config.js"></script>
     <style>
         .auth-container {
             min-height: 100vh;
@@ -108,20 +107,11 @@
     </style>
 </head>
 
-<body style="overflow: hidden;"> <!-- Lock scroll during splash -->
-    <div id="splash-screen">
-        <div class="splash-content">
-            <img src="logo.png" alt="CityRide Premium Logo" class="splash-logo">
-            <div class="loading-bar">
-                <div class="loading-progress"></div>
-            </div>
-            <p class="splash-text">CityRide � Premium Intelligence Units</p>
-        </div>
-    </div>
+<body>
     <div class="auth-container">
         <div class="auth-card">
-            <div class="logo" style="margin-bottom: 3rem; text-align: center; cursor: pointer;" onclick="window.location.href='index.html'">
-                <img src="logo.png" alt="CityRideTaxi" style="height: 60px; width: auto; display: block; margin: 0 auto 1rem;">
+            <div class="logo" style="margin-bottom: 3rem; text-align: center;">
+                <span class="logo-accent">CityRide</span>Taxi
             </div>
 
             <div class="auth-tabs">
@@ -140,9 +130,6 @@
                     <input type="password" id="login-password" placeholder="••••••••" required>
                 </div>
                 <button type="submit" class="btn btn-primary btn-large">Login to CityRideTaxi</button>
-                <div style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; opacity: 0.8;">
-                    Are you a partner? <a href="driver-login.html" style="color: var(--primary-red); font-weight: 700; text-decoration: none; border-bottom: 1px solid transparent; transition: 0.3s;" onmouseover="this.style.borderBottomColor='var(--primary-red)'" onmouseout="this.style.borderBottomColor='transparent'">Driver Login</a>
-                </div>
             </form>
 
             <!-- Register Form (Passenger Only) -->
@@ -215,7 +202,7 @@
             };
 
             try {
-                const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+                const res = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
@@ -228,7 +215,7 @@
                 } else {
                     alert(result.error);
                 }
-            } catch (err) { alert(`Login failed at ${API_BASE_URL}/api/auth/login. Error: ${err.message}`); }
+            } catch (err) { alert('Login failed'); }
         });
 
         // --- OTP Verification Logic ---
@@ -241,7 +228,7 @@
             btn.textContent = 'Sending...';
 
             try {
-                const res = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
+                const res = await fetch('/api/auth/send-otp', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email })
@@ -255,7 +242,7 @@
                     alert(result.error);
                     btn.textContent = 'Retry Verify';
                 }
-            } catch (err) { alert(`Failed to send OTP to ${API_BASE_URL}/api/auth/send-otp. Error: ${err.message}`); }
+            } catch (err) { alert('Failed to send OTP'); }
             btn.disabled = false;
         }
 
@@ -275,7 +262,7 @@
             if (!document.getElementById('reg-terms').checked) return alert('Please accept the terms and conditions.');
 
             try {
-                const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+                const res = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
@@ -287,16 +274,7 @@
                 } else {
                     alert(result.error);
                 }
-            } catch (err) { alert(`Identity Verification failed at ${API_BASE_URL}/api/auth/register. Error: ${err.message}`); }
-        });
-    </script>
-    <script>
-        window.addEventListener('load', () => {
-            const splash = document.getElementById('splash-screen');
-            setTimeout(() => {
-                splash.classList.add('splash-hidden');
-                document.body.style.overflow = 'auto'; // Re-enable scroll
-            }, 1500); // Shorter splash for auth
+            } catch (err) { alert('Identity Verification failed'); }
         });
     </script>
     <script src="alert.js"></script>

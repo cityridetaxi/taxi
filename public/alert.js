@@ -21,8 +21,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // Override the default alert
     window.alert = function(message) {
         const msgText = document.getElementById('global-alert-msg-text');
+        const alertBox = alertOverlay.querySelector('.alert-box');
+        const alertIcon = alertOverlay.querySelector('.alert-icon');
+
         if (msgText) {
             msgText.textContent = message;
+            
+            // Celebration Trigger
+            if (message.includes('CONGRATULATIONS')) {
+                alertBox.classList.add('celebration');
+                alertOverlay.classList.add('celebration-active');
+                alertIcon.textContent = '🎉';
+            } else {
+                alertBox.classList.remove('celebration');
+                alertOverlay.classList.remove('celebration-active');
+                alertIcon.textContent = '⚠️';
+            }
+            
             alertOverlay.classList.add('active');
         } else {
             console.log("ALERT FALLBACK:", message);

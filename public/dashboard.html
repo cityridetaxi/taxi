@@ -197,6 +197,13 @@
             color: var(--text-muted);
         }
 
+        /* Toast Notifications */
+
+        @keyframes fadeOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(50%); opacity: 0; }
+        }
+
         /* Responsive Dashboard */
         @media (max-width: 768px) {
             .nav {
@@ -280,7 +287,7 @@
             <div class="loading-bar">
                 <div class="loading-progress"></div>
             </div>
-            <p class="splash-text">CityRide � Premium Intelligence Units</p>
+            <p class="splash-text">CityRide  Premium Intelligence Units</p>
         </div>
     </div>
     <header class="header">
@@ -332,7 +339,7 @@
 
             <!-- Ban Warning Banner -->
             <div id="ban-banner" class="ban-banner">
-                <div class="ban-icon">🚫</div>
+                <div class="ban-icon"></div>
                 <div>
                     <div style="font-size:1.1rem; font-weight:800; margin-bottom:0.3rem;">Account Temporarily Suspended</div>
                     <div id="ban-message" style="font-size:0.9rem; opacity:0.9;">You have exceeded the daily cancellation limit (3 per day). Booking disabled for 24 hours.</div>
@@ -342,7 +349,7 @@
 
             <!-- Cancel Warning (1-2 cancels) -->
             <div id="cancel-warn" class="cancel-warn">
-                <span>⚠️</span>
+                <span></span>
                 <span id="cancel-warn-text"></span>
             </div>
 
@@ -420,6 +427,10 @@
     </main>
 
     <script>
+        let isMapInitialized = false;
+        let lastSeenStatuses = new Map(); // id -> status
+        let initialLoadDone = false;
+
         document.addEventListener('DOMContentLoaded', () => {
             const user = JSON.parse(localStorage.getItem('cityride_member'));
             if (!user) {
@@ -431,15 +442,32 @@
 
             checkBanStatus(user.id);
             loadDashboardData(user);
+            initialLoadDone = true;
             // Live Update Radar Poll
             setInterval(() => loadDashboardData(user), 5000);
         });
+
+        function showToast(title, message, type = 'info') {
+            console.log(`TOAST (${type}): ${title} - ${message}`);
+        }
 
         async function loadDashboardData(user) {
 
             try {
                 const res = await fetch(`${API_BASE_URL}/api/user/bookings/${user.id}`);
                 const rides = await res.json();
+
+                // Delta Tracking for Status Changes
+                if (initialLoadDone) {
+                    rides.forEach(ride => {
+                        if (!lastSeenStatuses.has(ride.id)) {
+                            showToast('New Ride Booked', `Your trip to ${ride.drop_loc.split(',')[0]} has been registered.`, 'success');
+                        } else if (lastSeenStatuses.get(ride.id) !== ride.status) {
+                            showToast('Ride Update', `Trip #B${ride.id} is now ${ride.status.toUpperCase()}.`, 'info');
+                        }
+                    });
+                }
+                lastSeenStatuses = new Map(rides.map(r => [r.id, r.status]));
 
                 const body = document.getElementById('rides-body');
                 body.innerHTML = '';
@@ -489,6 +517,7 @@
                             </div>
                             <div style="margin-top:2rem; padding:1.5rem; background:white; border-radius:15px; border:1px solid #eee;">
                                 <div style="font-weight:600; color:var(--primary-red); margin-bottom:0.5rem;">Ride Details</div>
+                                <div style="font-size:0.95rem; font-weight:700;">Total Distance: <span style="color:var(--primary-red)">${activeMission.distance || '0 KM'}</span></div>
                                 <div style="font-size:0.95rem; font-weight:700;">Estimated Fare: <span style="color:var(--primary-red)">${activeMission.fare}</span></div>
                             </div>
                         </div>
@@ -506,9 +535,9 @@
                     let driverDetails = '<div style="font-size:0.8rem; color:var(--text-muted)">Awaiting Assignment...</div>';
                     if (ride.driver_name) {
                         driverDetails = `
-                            <div style="font-weight:600">👤 ${ride.driver_name || 'Pilot'}</div>
-                            <div style="font-size:0.8rem">🚕 ${ride.car_model || 'Premium Vehicle'} (${ride.car_number || 'TBD'})</div>
-                            <div style="font-size:0.8rem">📞 <a href="tel:${ride.driver_phone || ''}" style="color:var(--primary-red)">${ride.driver_phone || 'Signal Not Available'}</a></div>
+                            <div style="font-weight:600"> ${ride.driver_name || 'Pilot'}</div>
+                            <div style="font-size:0.8rem"> ${ride.car_model || 'Premium Vehicle'} (${ride.car_number || 'TBD'})</div>
+                            <div style="font-size:0.8rem"> <a href="tel:${ride.driver_phone || ''}" style="color:var(--primary-red)">${ride.driver_phone || 'Signal Not Available'}</a></div>
                         `;
                     }
 
@@ -522,7 +551,7 @@
                     row.innerHTML = `
                         <td>${idText}</td>
                         <td>
-                            <div style="font-weight:800; font-size:0.7rem; color:#666; text-transform:uppercase; margin-bottom:0.3rem;">${tripTypeName}</div>
+                            <div style="font-weight:800; font-size:0.7rem; color:#666; text-transform:uppercase; margin-bottom:0.3rem;">${tripTypeName} • ${ride.distance || '0 KM'}</div>
                             <div style="font-weight:600">${ride.pickup_loc}</div>
                             <div style="font-size:0.8rem; color:var(--text-muted)">to ${ride.drop_loc}</div>
                             <div style="margin-top:0.5rem">${driverDetails}</div>
@@ -532,9 +561,9 @@
                             <div style="font-size:0.8rem">${ride.pickup_time}</div>
                         </td>
                         <td>${ride.vehicle_type.toUpperCase()}</td>
-                        <td style="font-weight:700">₹${ride.fare}</td>
+                        <td style="font-weight:700">${ride.fare}</td>
                         <td><span class="status-pill status-${ride.status}">${ride.status}</span></td>
-                        <td>${canCancel ? `<button class="btn-cancel-ride" onclick="cancelRide(${ride.id}, ${user.id})">Cancel</button>` : '<span style="color:#ccc;font-size:0.8rem;">—</span>'}</td>
+                        <td>${canCancel ? `<button class="btn-cancel-ride" onclick="cancelRide(${ride.id}, ${user.id})">Cancel</button>` : '<span style="color:#ccc;font-size:0.8rem;"></span>'}</td>
                     `;
                     body.appendChild(row);
                 });
@@ -548,7 +577,7 @@
             window.location.href = 'auth.html';
         }
 
-        // ── Cancel Ride ───────────────────────────────────────────────
+        //  Cancel Ride 
         async function cancelRide(bookingId, userId) {
             if (!confirm('Are you sure you want to cancel this ride?')) return;
             try {
@@ -562,7 +591,7 @@
                     if (result.banned) {
                         showBanBanner(result.banned_until);
                         hideCancelWarn();
-                        alert('🚫 ' + result.message);
+                        alert(' ' + result.message);
                     } else {
                         const remaining = 3 - result.cancelCount;
                         if (result.cancelCount > 0) showCancelWarn(result.cancelCount, remaining);
@@ -574,14 +603,14 @@
                     if (result.banned) {
                         showBanBanner(result.banned_until);
                     }
-                    alert('❌ ' + result.error);
+                    alert(' ' + result.error);
                 }
             } catch (err) {
                 alert('Cancel failed: ' + err.message);
             }
         }
 
-        // ── Ban Banner ───────────────────────────────────────────────
+        //  Ban Banner 
         let banCountdownInterval = null;
 
         function showBanBanner(banUntil) {
@@ -603,7 +632,7 @@
             const hrs = Math.floor(diff / 3600000);
             const mins = Math.floor((diff % 3600000) / 60000);
             document.getElementById('ban-countdown').textContent =
-                `⏳ Suspension lifts in: ${hrs}h ${mins}m`;
+                ` Suspension lifts in: ${hrs}h ${mins}m`;
         }
 
         function showCancelWarn(count, remaining) {
@@ -617,7 +646,7 @@
             document.getElementById('cancel-warn').classList.remove('active');
         }
 
-        // ── Check ban on page load ───────────────────────────────────
+        //  Check ban on page load 
         async function checkBanStatus(userId) {
             try {
                 const res = await fetch(`${API_BASE_URL}/api/user/ban-status/${userId}`);
@@ -626,6 +655,7 @@
                 else hideBanBanner();
             } catch (e) {}
         }
+
     </script>
     <script>
         window.addEventListener('load', () => {

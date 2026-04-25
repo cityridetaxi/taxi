@@ -494,12 +494,16 @@ h4 {
 
 #sedan-img {
     background-image: url('logo.png');
-    background-color: var(--light-grey);
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
 #suv-img {
     background-image: url('logo.png');
-    background-color: var(--light-grey);
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
 .fleet-card:hover .fleet-img {
@@ -942,6 +946,15 @@ h4 {
         padding-top: 2rem;
     }
 
+    .auth-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #1a1c1e;
+        padding: 2rem;
+    }
+
     .hero-text {
         margin-bottom: 3rem;
         display: flex;
@@ -1077,16 +1090,17 @@ h4 {
     background: var(--white);
     width: 95%;
     max-width: 1000px;
-    height: 85vh;
+    height: auto;
+    max-height: 90vh;
     border-radius: 30px;
-    overflow: hidden;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     box-shadow: var(--shadow-lg);
 }
 
 .map-header {
-    padding: 1.5rem 2.5rem;
+    padding: 1rem 1.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1460,4 +1474,143 @@ h4 {
 .splash-hidden {
     opacity: 0;
     visibility: hidden;
+}
+
+/* Celebratory Alert Animations */
+.alert-overlay.celebration-active {
+    background: rgba(0, 0, 0, 0.85) !important;
+}
+
+.alert-box.celebration {
+    border: 4px solid #FFD700 !important;
+    background: linear-gradient(135deg, #ffffff 0%, #fffdf0 100%) !important;
+    animation: celebrate-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    box-shadow: 0 20px 50px rgba(255, 215, 0, 0.3) !important;
+    text-align: center;
+}
+
+.alert-box.celebration .alert-icon {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+    display: block;
+    animation: jiggle 0.6s infinite;
+}
+
+.alert-box.celebration #global-alert-msg-text {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #1a1c1e;
+    line-height: 1.4;
+}
+
+.alert-box.celebration .alert-btn {
+    background: #FFD700;
+    color: #000;
+    border: none;
+    font-weight: 800;
+    margin-top: 2rem;
+    width: 100%;
+}
+
+@keyframes celebrate-pop {
+    0% { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes jiggle {
+    0%, 100% { transform: rotate(-15deg) scale(1); }
+    50% { transform: rotate(15deg) scale(1.2); }
+}
+
+/* Tactical Radar Control (Driver Specific) */
+.tactical-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.tactical-modal-inner {
+    position: relative;
+    width: 90%;
+    height: 70%;
+    background: white;
+    border-radius: 30px;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.4);
+    overflow: hidden;
+    animation: modalSlideUp 0.5s ease;
+}
+
+.tactical-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 2000;
+    background: white;
+    border: none;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    font-weight: 800;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: var(--primary-red);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.tactical-close:hover {
+    transform: scale(1.1);
+    background: var(--primary-red);
+    color: white;
+}
+
+/* Mission Pin Pointers */
+.pin-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.pin-pointer {
+    width: 32px;
+    height: 32px;
+    background: var(--primary-red);
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    border: 3px solid white;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pin-pointer span {
+    transform: rotate(45deg);
+    color: white;
+    font-weight: 800;
+    font-size: 0.7rem;
+    display: block;
+    width: 100%;
+    text-align: center;
+}
+
+.pin-pointer-dest {
+    width: 24px;
+    height: 24px;
+    background: #424242;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    border: 2px solid white;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }

@@ -239,9 +239,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             timeout = setTimeout(async () => {
-                const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5`;
+                const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lang=en&lon=77.2167&lat=28.6667`; 
                 try {
                     const res = await fetch(url);
+                    if (!res.ok) throw new Error('API Response Error');
                     const data = await res.json();
                     box.innerHTML = '';
 
@@ -391,13 +392,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Terms & Conditions Modal Logic ---
     let pendingBookingData = null;
 
-    window.openTermsModal = function() {
-        const modal = document.getElementById('terms-modal');
+    window.openBookingModal = function() {
+        const modal = document.getElementById('booking-modal');
+        const summary = document.getElementById('booking-summary');
+        
+        if (pendingBookingData && summary) {
+            summary.innerHTML = `
+                <div style="padding: 1.2rem; background: #fff8f8; border: 1.5px solid var(--primary-red); border-radius: 16px; font-size: 0.9rem; line-height: 1.6; color: #333;">
+                    <div style="font-weight: 800; color: var(--primary-red); margin-bottom: 0.8rem; text-transform: uppercase; letter-spacing: 1px; font-size: 1.1rem;">📋 Important Notice</div>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div><b>@Additional:</b> Toll Fees, Inter-State Permit Airport Charges Parking Charges (if any) are extra.</div>
+                        <div><b>@Driver Betta:</b> Rs. 400. [Rs. 600 for above 400kms]</div>
+                        <div><b>@Hill Station Charges:</b> - Rs. 400</div>
+                        <div><b>@One Way Drop Trips:</b> - Minimum running must be 130 kms</div>
+                        <div><b>@Waiting Charges:</b> will be Rs.2 per min. (Except 30 min for food.)</div>
+                        <div><b>@Max lagguage capacity by vehicle type:</b><br>-Sedan - 2 suitcases, Suv - 3 suitcases</div>
+                    </div>
+                </div>
+            `;
+        }
+        
         if (modal) modal.style.display = 'flex';
     };
 
-    window.closeTermsModal = function() {
-        const modal = document.getElementById('terms-modal');
+    window.closeBookingModal = function() {
+        const modal = document.getElementById('booking-modal');
         if (modal) modal.style.display = 'none';
         pendingBookingData = null;
     };
@@ -417,7 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert(`🏨 BOOKING CONFIRMED!\nBooking ID: #B${result.bookingId}\n\nYour premium captain will be assigned shortly.`);
                 bookingForm.reset();
                 if (fareEstimate) fareEstimate.classList.add('hidden');
-                closeTermsModal();
+                closeBookingModal();
 
                 // Clear map state
                 if (mapMarker) {
@@ -457,12 +476,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (!confirm('Confirm your premium CityRide booking?')) return;
-
         pendingBookingData = {
             userId: user.id,
             pickup: document.getElementById('pickup').value,
+            pickupCoords: document.getElementById('pickup').dataset.coords,
             drop: document.getElementById('drop').value,
+            dropCoords: document.getElementById('drop').dataset.coords,
             date: document.getElementById('pickup-date').value,
             time: document.getElementById('pickup-time').value,
             passengers: parseInt(passengerInput.value) || 1,
@@ -473,7 +492,15 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         console.log('🚀 Finalizing CityRide Booking Payload:', pendingBookingData);
-        confirmBookingWithTerms();
+        
+        const fareNum = parseFloat(pendingBookingData.fare.replace(/[^\d.]/g, '')) || 0;
+        if (fareNum <= 0) {
+            alert('⚠️ Fare Calculation Error: The estimated fare is 0. Please re-enter your locations or adjust your trip parameters to recalculate.');
+            return;
+        }
+
+        // Redirect to booking modal with summary
+        openBookingModal();
     });
 
     // --- Authentication UI Header Logic ---

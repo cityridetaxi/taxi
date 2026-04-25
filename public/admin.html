@@ -208,6 +208,11 @@
             color: #d32f2f;
         }
 
+        .status-cancel_requested {
+            background: #fce4ec;
+            color: #c2185b;
+        }
+
         .action-btn {
             background: none;
             border: none;
@@ -544,6 +549,7 @@
         <div class="sidebar-nav">
             <div class="nav-item active" onclick="switchTab('overview', this)">📊 Execution Overview</div>
             <div class="nav-item" onclick="switchTab('bookings', this)">🚕 Mission Control</div>
+            <div class="nav-item" onclick="switchTab('cancellations', this)">🛑 Abort Requests</div>
             <div class="nav-item" onclick="switchTab('drivers', this)">🏎️ Manage Drivers</div>
             <div class="nav-item" onclick="switchTab('users', this)">👥 Member Registry</div>
         </div>
@@ -675,6 +681,7 @@
                             style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.1); color: white; width: 100%; padding: 10px; border-radius: 8px;">
                             <option value="sedan" style="color: black;">Sedan</option>
                             <option value="suv" style="color: black;">SUV</option>
+                            <option value="bike" style="color: black;">Bike</option>
                         </select>
                     </div>
                     <div style="grid-column: span 3;">
@@ -727,6 +734,33 @@
                 </table>
             </div>
         </div>
+
+        <!-- Abort Requests Tab -->
+        <div id="cancellations" class="tab-section">
+            <div class="stage-header">
+                <div>
+                    <h1>Mission <span class="text-accent">Aborts</span></h1>
+                    <p>Review and authorize emergency mission cancellation requests from the fleet.</p>
+                </div>
+            </div>
+
+            <div class="data-table-container">
+                <table class="cityride-table">
+                    <thead>
+                        <tr>
+                            <th>Mission ID</th>
+                            <th>Pilot</th>
+                            <th>Reason for Abort</th>
+                            <th>Command Decision</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cancellations-table-body">
+                        <!-- Loaded via JS -->
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
     </main>
 
     <!-- Edit Driver Modal -->
@@ -754,6 +788,14 @@
                     <div class="input-group">
                         <label>Vehicle ID (Plate)</label>
                         <input type="text" id="edit-d-num" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Vehicle Type</label>
+                        <select id="edit-d-type" required style="width: 100%; padding: 0.85rem 1rem; border-radius: 10px; border: 1px solid rgba(0,0,0,0.1); font-family: inherit; font-size: 1rem;">
+                            <option value="sedan">Sedan</option>
+                            <option value="suv">SUV</option>
+                            <option value="bike">Bike</option>
+                        </select>
                     </div>
                     <button type="submit" class="btn btn-primary btn-large" style="width:100%; margin-top: 1rem;">Update
                         Authorization</button>
@@ -967,6 +1009,28 @@
                             </tr>
                         `;
                     });
+                } else if (tabId === 'cancellations') {
+                    const res = await fetch(`${API_BASE_URL}/api/admin/bookings`);
+                    const bookings = await res.json();
+                    const body = document.getElementById('cancellations-table-body');
+                    body.innerHTML = '';
+                    bookings.filter(b => b.status === 'cancel_requested').forEach(b => {
+                        body.innerHTML += `
+                            <tr>
+                                <td>#B${b.id}</td>
+                                <td>
+                                    <strong>${b.driver_name || 'Pilot'}</strong><br>
+                                    <span style="font-size:0.8rem; color:#888">${b.customer_name} (#B${b.id})</span>
+                                </td>
+                                <td style="color:#d32f2f; font-weight:700;">${b.cancel_reason || 'No Reason Provided'}</td>
+                                <td>
+                                    <button class="action-btn" style="color:#28a745" onclick="approveCancel(${b.id})">Approve Abort</button>
+                                    <button class="action-btn" style="color:#dc3545; margin-left:10px" onclick="rejectCancel(${b.id})">Reject</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
                 }
             } catch (err) { console.error(err); }
         }
@@ -1005,6 +1069,33 @@
                 });
                 if (res.ok) loadTabData('drivers');
             } catch (err) { alert('Revocation failed'); }
+        }
+
+        async function approveCancel(bookingId) {
+            if (!confirm('Approve this mission abort?')) return;
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/admin/approve-cancel`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bookingId })
+                });
+                if (res.ok) loadTabData('cancellations');
+            } catch (err) { alert('Action failed'); }
+        }
+
+        async function rejectCancel(bookingId) {
+            const note = prompt('Enter justification for rejection (optional):');
+            if (note === null) return; // cancelled prompt
+            
+            if (!confirm('Reject this abort request? This mission will remain assigned.')) return;
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/admin/reject-cancel`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bookingId, note })
+                });
+                if (res.ok) loadTabData('cancellations');
+            } catch (err) { alert('Action failed'); }
         }
 
         function logoutAdmin() {
@@ -1048,6 +1139,7 @@
             document.getElementById('edit-d-phone').value = d.phone || '';
             document.getElementById('edit-d-car').value = d.car_model || '';
             document.getElementById('edit-d-num').value = d.car_number || '';
+            document.getElementById('edit-d-type').value = d.vehicle_type || 'sedan';
             document.getElementById('edit-driver-modal').style.display = 'flex';
         }
 
@@ -1062,7 +1154,8 @@
                 name: document.getElementById('edit-d-name').value,
                 phone: document.getElementById('edit-d-phone').value,
                 car_model: document.getElementById('edit-d-car').value,
-                car_number: document.getElementById('edit-d-num').value
+                car_number: document.getElementById('edit-d-num').value,
+                vehicle_type: document.getElementById('edit-d-type').value
             };
 
             try {

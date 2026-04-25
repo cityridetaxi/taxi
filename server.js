@@ -148,7 +148,9 @@ async function initDB() {
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT,
                 pickup_loc TEXT,
+                pickup_coords VARCHAR(100),
                 drop_loc TEXT,
+                drop_coords VARCHAR(100),
                 pickup_date DATE,
                 pickup_time TIME,
                 passengers INT,
@@ -161,10 +163,36 @@ async function initDB() {
             )
         `);
 
+        // Migration: Ensure coords exist
+        try { await db.query('ALTER TABLE bookings ADD COLUMN pickup_coords VARCHAR(100) AFTER pickup_loc'); } catch(e){}
+        try { await db.query('ALTER TABLE bookings ADD COLUMN drop_coords VARCHAR(100) AFTER drop_loc'); } catch(e){}
+
         // Migration: Ensure trip_type exists
         try {
             await db.query('ALTER TABLE bookings ADD COLUMN trip_type VARCHAR(50) AFTER vehicle_type');
         } catch (e) { /* already exists */ }
+
+        // Migration: Ensure cancel_reason exists
+        try {
+            await db.query('ALTER TABLE bookings ADD COLUMN cancel_reason TEXT AFTER status');
+        } catch (e) { /* already exists */ }
+
+        // Migration: Ensure distance exists
+        try {
+            await db.query('ALTER TABLE bookings ADD COLUMN distance VARCHAR(50) AFTER fare');
+        } catch (e) { /* already exists */ }
+
+        // Abort Rejections Table
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS abort_rejections (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                booking_id INT,
+                driver_id INT,
+                original_reason TEXT,
+                admin_note TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
 
         // OTPs Table (For Email Verification)
         await db.query(`
@@ -417,12 +445,20 @@ app.post('/api/auth/register', async (req, res) => {
     }
 });
 
-// 2. Passenger Login (by Phone Number)
 app.post('/api/auth/login', async (req, res) => {
     try {
-        const { phone, password } = req.body;
-        if (!phone || !password) return res.status(400).json({ error: 'Phone and password are required.' });
-        const [users] = await db.query('SELECT id, name, email, phone, password, is_blocked FROM passengers WHERE phone = ?', [phone]);
+        const { phone, email, password } = req.body;
+        const identifier = phone || email;
+        
+        if (!identifier || !password) {
+            return res.status(400).json({ error: 'Identifier (phone/email) and password are required.' });
+        }
+
+        // Check against both phone and email
+        const [users] = await db.query(
+            'SELECT id, name, email, phone, password, is_blocked FROM passengers WHERE phone = ? OR email = ?', 
+            [identifier, identifier]
+        );
         
         if (users.length > 0) {
             const user = users[0];
@@ -504,16 +540,19 @@ app.post('/api/bookings/create', async (req, res) => {
         const values = [
             booking.userId || 1,
             String(booking.pickup || ''),
+            booking.pickupCoords,
             String(booking.drop || ''),
+            booking.dropCoords,
             booking.date,
             booking.time,
             parseInt(booking.passengers) || 1,
             String(booking.vehicle || 'sedan'),
             String(booking.tripType || 'oneway'),
             String(booking.fare || '₹0'),
+            String(booking.distance || '0 KM'),
             'pending'
         ];
-        const [result] = await db.query('INSERT INTO bookings (user_id, pickup_loc, drop_loc, pickup_date, pickup_time, passengers, vehicle_type, trip_type, fare, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', values);
+        const [result] = await db.query('INSERT INTO bookings (user_id, pickup_loc, pickup_coords, drop_loc, drop_coords, pickup_date, pickup_time, passengers, vehicle_type, trip_type, fare, distance, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', values);
         res.json({ success: true, bookingId: result.insertId });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -618,9 +657,74 @@ app.post('/api/bookings/accept', async (req, res) => {
             return res.status(400).json({ error: `Insufficient funds. Need ₹${requiredBalance.toFixed(2)}.` });
         }
 
+        // --- ENFORCE SINGLE ACTIVE MISSION RULE ---
+        const [active] = await db.query('SELECT id FROM bookings WHERE driver_id = ? AND status = "assigned"', [driverId]);
+        if (active.length > 0) {
+            return res.status(400).json({ error: 'Ground Control: You already have an active mission locked in. Complete your current duty before accepting new targets.' });
+        }
+
         await db.query('UPDATE bookings SET status = "assigned", driver_id = ? WHERE id = ?', [driverId, bookingId]);
         await db.query('UPDATE drivers SET wallet_balance = wallet_balance - ? WHERE id = ?', [requiredBalance, driverId]);
         res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 2.3.1 Request Cancellation (Driver Action)
+app.post('/api/driver/request-cancel', async (req, res) => {
+    try {
+        const { bookingId, driverId, reason } = req.body;
+        const [bookings] = await db.query('SELECT status FROM bookings WHERE id = ? AND driver_id = ?', [bookingId, driverId]);
+        if (bookings.length === 0) return res.status(404).json({ error: 'Mission not found.' });
+        if (bookings[0].status !== 'assigned') return res.status(400).json({ error: 'Only assigned missions can be aborted.' });
+
+        await db.query('UPDATE bookings SET status = "cancel_requested", cancel_reason = ? WHERE id = ?', [reason || 'No reason provided', bookingId]);
+        res.json({ success: true, message: 'Cancellation request sent to Ground Control.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 2.3.2 Approve Cancellation (Admin Action)
+app.post('/api/admin/approve-cancel', async (req, res) => {
+    try {
+        const { bookingId } = req.body;
+        await db.query('UPDATE bookings SET status = "cancelled", driver_id = NULL WHERE id = ?', [bookingId]);
+        res.json({ success: true, message: 'Mission officially aborted.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 2.3.3 Reject Cancellation (Admin Action)
+app.post('/api/admin/reject-cancel', async (req, res) => {
+    try {
+        const { bookingId, note } = req.body;
+        const [bookings] = await db.query('SELECT driver_id, cancel_reason FROM bookings WHERE id = ?', [bookingId]);
+        if (bookings.length > 0) {
+            await db.query('INSERT INTO abort_rejections (booking_id, driver_id, original_reason, admin_note) VALUES (?, ?, ?, ?)', 
+                [bookingId, bookings[0].driver_id, bookings[0].cancel_reason, note || 'Rejected by Admin Control']);
+        }
+        await db.query('UPDATE bookings SET status = "assigned" WHERE id = ?', [bookingId]);
+        res.json({ success: true, message: 'Cancellation rejected. Mission remains active.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 2.3.4 Abort Rejection History (Admin Action)
+app.get('/api/admin/rejection-history', async (req, res) => {
+    try {
+        const sql = `
+            SELECT r.*, d.name as driver_name, b.pickup_loc, b.drop_loc 
+            FROM abort_rejections r
+            LEFT JOIN drivers d ON r.driver_id = d.id
+            LEFT JOIN bookings b ON r.booking_id = b.id
+            ORDER BY r.created_at DESC
+        `;
+        const [rows] = await db.query(sql);
+        res.json(rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -633,7 +737,7 @@ app.get('/api/driver/my-jobs/:driverId', async (req, res) => {
             SELECT b.*, u.name as customer_name, u.phone as customer_phone 
             FROM bookings b 
             LEFT JOIN passengers u ON b.user_id = u.id 
-            WHERE b.driver_id = ? AND b.status IN ("assigned", "completed")
+            WHERE b.driver_id = ? AND b.status IN ("assigned", "completed", "cancel_requested")
             ORDER BY b.created_at DESC
         `;
         const [rows] = await db.query(sql, [req.params.driverId]);
@@ -784,6 +888,36 @@ app.post('/api/admin/update-driver-wallet', async (req, res) => {
     }
 });
 
+// 3.4.1.2 Password Reset (Driver)
+app.post('/api/admin/update-driver-password', async (req, res) => {
+    try {
+        const { id, password } = req.body;
+        if (!id || !password) return res.status(400).json({ error: 'ID and password are required.' });
+        
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        await db.query('UPDATE drivers SET password = ? WHERE id = ?', [hashedPassword, id]);
+        res.json({ success: true, message: 'Driver password updated successfully.' });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to update driver password.' });
+    }
+});
+
+// 3.4.1.3 Password Reset (Passenger)
+app.post('/api/admin/update-passenger-password', async (req, res) => {
+    try {
+        const { id, password } = req.body;
+        if (!id || !password) return res.status(400).json({ error: 'ID and password are required.' });
+        
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        await db.query('UPDATE passengers SET password = ? WHERE id = ?', [hashedPassword, id]);
+        res.json({ success: true, message: 'Passenger password updated successfully.' });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to update passenger password.' });
+    }
+});
+
 // 3.4.2 Block/Unblock Operations
 app.post('/api/admin/toggle-block', async (req, res) => {
     try {
@@ -824,7 +958,7 @@ app.get('/api/driver/jobs/:driverId', async (req, res) => {
             SELECT b.*, u.name as customer_name, u.phone as customer_phone 
             FROM bookings b 
             LEFT JOIN passengers u ON b.user_id = u.id 
-            WHERE b.status = "pending" AND (b.vehicle_type = ? OR b.vehicle_type IS NULL OR b.vehicle_type = "")
+            WHERE b.status = "pending" AND b.vehicle_type = ?
             ORDER BY b.created_at ASC
         `;
         const [rows] = await db.query(sql, [driverVehicleType]);

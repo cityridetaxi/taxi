@@ -11,6 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.tile.openstreetmap.org https://unpkg.com; script-src 'self' 'unsafe-inline' https://unpkg.com; connect-src 'self' https://*.railway.app https://photon.komoot.io https://router.project-osrm.org https://unpkg.com;">
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -141,13 +142,30 @@
         </div>
     </div>
 
-    </a>
+    <!-- Booking Confirmation Modal -->
+    <div id="booking-modal" class="map-modal" style="display:none; padding: 20px;">
+        <div class="map-modal-content" style="max-width: 550px; width: 95%; height: auto; max-height: 92vh; border-radius: 24px;">
+            <div class="map-header">
+                <h3>Important Booking Policy</h3>
+                <button class="close-map" onclick="closeBookingModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem;">
+                <div id="booking-summary">
+                    <!-- Dynamic summary will be injected here -->
+                </div>
+                <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+                    <button class="btn btn-primary" style="flex: 1;" onclick="confirmBookingWithTerms()">Accept & Continue</button>
+                    <button class="btn" style="flex: 1; border: 1px solid var(--accents);" onclick="closeBookingModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <script>
         window.addEventListener('load', () => {
             const splash = document.getElementById('splash-screen');
             setTimeout(() => {
                 splash.classList.add('splash-hidden');
-                document.body.style.overflow = 'auto'; // Re-enable scroll
+                document.body.style.setProperty('overflow', 'auto', 'important'); // Force re-enable scroll
             }, 3000); // 3 second experience
         });
     </script>
