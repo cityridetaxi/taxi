@@ -482,6 +482,10 @@
                             showToast('New Ride Booked', `Your trip to ${ride.drop_loc.split(',')[0]} has been registered.`, 'success');
                         } else if (lastSeenStatuses.get(ride.id) !== ride.status) {
                             showToast('Ride Update', `Trip #B${ride.id} is now ${ride.status.toUpperCase()}.`, 'info');
+                            // If mission completed, refresh dashboard to update history and stats
+                            if (ride.status === 'completed') {
+                                setTimeout(() => window.location.reload(), 2000);
+                            }
                         }
                     });
                 }

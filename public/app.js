@@ -79,14 +79,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Auto-Select Vehicle Logic
     function updateVehicleSelection() {
         const count = parseInt(passengerInput.value) || 0;
+        let vehicleType = vehicleSelect.value;
 
+        // 1. Safety & Capacity Logic
+        if (count >= 5) {
+            // Must be SUV for 5+ passengers
+            if (vehicleType !== 'suv' && vehicleType !== 'auto') {
+                vehicleType = 'suv';
+                vehicleSelect.value = 'suv';
+            }
+        } else if (count >= 2) {
+            // Must be Sedan or SUV for 2-4 passengers (No Bike)
+            if (vehicleType === 'bike') {
+                vehicleType = 'sedan';
+                vehicleSelect.value = 'sedan';
+            }
+        }
+
+        // 2. Auto-Select Display Logic
         if (vehicleSelect.value === 'auto') {
-            if (count > 4) {
+            if (count >= 5) {
                 vehicleBadge.textContent = 'Auto-Selected: Luxury SUV (7 Seater)';
                 vehicleBadge.style.background = '#D32F2F'; // Primary Red
-            } else {
+            } else if (count >= 2) {
                 vehicleBadge.textContent = 'Auto-Selected: Premium Sedan (5 Seater)';
                 vehicleBadge.style.background = '#212121'; // Dark
+            } else {
+                vehicleBadge.textContent = 'Auto-Selected: Classy Bike Taxi (1 Seater)';
+                vehicleBadge.style.background = '#555'; 
             }
         } else {
             const selectedText = vehicleSelect.options[vehicleSelect.selectedIndex].text;

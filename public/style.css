@@ -1136,7 +1136,7 @@ h4 {
     background: var(--white);
     width: 95%;
     max-width: 1000px;
-    height: auto;
+    height: 85vh;
     max-height: 90vh;
     border-radius: 30px;
     overflow-y: auto;
